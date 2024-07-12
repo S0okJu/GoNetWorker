@@ -1,6 +1,6 @@
 package example
 
-// @NewNetWorker url http://localhost port 8080
+// @NewNetWorker uri http://localhost port 8080
 // @NetWorker path /tasks method GET
 type CreateReq struct {
 	Title string `json:"title"`
