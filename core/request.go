@@ -1,112 +1,121 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 )
 
-func RequestTo() {
-	// Read the config file
-	data, err := ioutil.ReadFile("docs/config.json")
-	if err != nil {
-		fmt.Printf("Error reading config file: %v\n", err)
-		return
-	}
+type Requests struct {
+	requests []Request
+}
 
-	// Parse the JSON
-	var config Config
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		fmt.Printf("Error parsing JSON: %v\n", err)
-		return
-	}
+func (r *Requests) Send() {
+	cnt := len(r.requests)
+	client := &http.Client{Timeout: 10 * time.Second}
 
-	// Seed the random number generator
-	rand.Seed(time.Now().UnixNano())
+	for {
+		num := rand.Intn(cnt)
+		req := r.requests[num]
 
-	// Process each work item
-	for _, work := range config.Works {
-		baseURI := work.Uri
-		if work.Port != 0 {
-			baseURI = fmt.Sprintf("%s:%d", baseURI, work.Port)
+		httpReq, err := r.createHTTPRequest(req)
+		if err != nil {
+			fmt.Printf("Error creating request: %v\n", err)
+			time.Sleep(1 * time.Second)
+			continue
 		}
 
-		// Process each request
-		for _, req := range work.Request {
-			fullURI := baseURI + req.Path
-			fmt.Printf("Making %s request to %s\n", req.Method, fullURI)
-
-			// Prepare the request
-			var httpReq *http.Request
-			var err error
-
-			switch req.Method {
-			case "GET":
-				params := url.Values{}
-				for key, dataType := range req.Param {
-					params.Add(key, generateRandomValue(dataType))
-				}
-				httpReq, err = http.NewRequest(req.Method, fullURI+"?"+params.Encode(), nil)
-			case "POST":
-				formData := url.Values{}
-				for key, dataType := range req.Param {
-					formData.Add(key, generateRandomValue(dataType))
-				}
-				httpReq, err = http.NewRequest(req.Method, fullURI, strings.NewReader(formData.Encode()))
-				httpReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			default:
-				fmt.Printf("Unsupported method: %s\n", req.Method)
-				continue
-			}
-
-			if err != nil {
-				fmt.Printf("Error creating request: %v\n", err)
-				continue
-			}
-
-			// Send the request
-			client := &http.Client{}
-			resp, err := client.Do(httpReq)
-			if err != nil {
-				fmt.Printf("Error sending request: %v\n", err)
-				continue
-			}
-			defer resp.Body.Close()
-
-			// Print the response
-			body, _ := ioutil.ReadAll(resp.Body)
-			fmt.Printf("Response status: %s\n", resp.Status)
-			fmt.Printf("Response body: %s\n\n", string(body))
+		_, err = client.Do(httpReq)
+		if err != nil {
+			fmt.Printf("Error sending request: %v\n", err)
+			time.Sleep(1 * time.Second)
+			continue
 		}
+
+		// Generate random sleep duration between 1 and 10 seconds
+		sleepDuration := time.Duration(rand.Intn(10)) * time.Second
+		fmt.Printf("Sleeping for %v before next request\n", sleepDuration)
+		time.Sleep(sleepDuration)
 	}
 }
 
-func generateRandomValue(dataType string) string {
-	switch dataType {
-	case "string":
-		return randomString(10)
-	case "int":
-		return fmt.Sprintf("%d", rand.Intn(1000))
-	case "float":
-		return fmt.Sprintf("%.2f", rand.Float64()*100)
-	case "bool":
-		return fmt.Sprintf("%t", rand.Intn(2) == 1)
+func (r *Requests) createHTTPRequest(req Request) (*http.Request, error) {
+	var httpReq *http.Request
+	var err error
+
+	switch req.Method {
+	case "GET":
+		httpReq, err = http.NewRequest(req.Method, req.Url, nil)
+	case "POST":
+		//formData := url.Values{}
+		//for key, dataType := range req.Body {
+		//	formData.Add(key, generateRandomValue(dataType))
+		//}
+		//fmt.Println(formData.Encode())
+		// Create a map to hold our JSON data
+		jsonData := make(map[string]interface{})
+
+		for key, dataType := range req.Body {
+			jsonData[key] = generateRandomValue(dataType)
+		}
+
+		// Marshal the map into JSON
+		jsonBody, jerr := json.Marshal(jsonData)
+		if jerr != nil {
+			return nil, fmt.Errorf("error marshaling JSON: %v", err)
+		}
+
+		fmt.Println("JSON body:", string(jsonBody))
+
+		httpReq, err = http.NewRequest(req.Method, req.Url, bytes.NewBuffer(jsonBody))
+		//httpReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	default:
-		return "unknown_type"
+		return nil, fmt.Errorf("unsupported method: %s", req.Method)
 	}
+
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+
+	return httpReq, nil
 }
 
-func randomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
+type Request struct {
+	Url    string
+	Method string
+	Body   map[string]string
+}
+
+func (r *Requests) Add(req Request) {
+	r.requests = append(r.requests, req)
+	fmt.Println("Done")
+}
+
+func Send(path string) {
+	// Parse Json
+
+	p := newParser(path)
+	p.parseJson(p)
+
+	res := p.cfg
+	var reqs Requests
+	// Convert to requests
+	for _, work := range res.Works {
+		baseURI := Url(work.Uri, work.Port, "")
+		for _, req := range work.Info {
+			fullURI := Url(baseURI, 0, req.Path)
+			reqs.Add(Request{
+				Url:    fullURI,
+				Method: req.Method,
+				Body:   req.Param,
+			})
+
+		}
 	}
-	return string(b)
+
+	// send
+	reqs.Send()
 }

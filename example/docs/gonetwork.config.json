@@ -3,21 +3,14 @@
     {
       "uri": "http://localhost",
       "port": 8080,
-      "request": [
+      "info": [
         {
-          "path": "/tasks",
-          "method": "GET",
-          "param": {
-            "title": "string"
-          }
-        },
-        {
-          "path": "/tasks/add",
+          "path": "/echo",
           "method": "POST",
           "param": {
-            "task_id": "string",
-            "title": "string"
-          }
+            "text" : "string"
+          },
+          "weight": 1
         }
       ]
     }
