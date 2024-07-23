@@ -9,7 +9,7 @@ const App: React.FC = () => {
 
   const handleApply = async () => {
     try {
-      const response = await axios.post('/api/apply', JSON.parse(jsonData), {
+      const response = await axios.post('/api/json', JSON.parse(jsonData), {
         headers: {
           'Content-Type': 'application/json',
         },
