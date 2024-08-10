@@ -5,12 +5,12 @@
       "port": 8080,
       "info": [
         {
-          "path": "/echo",
-          "method": "POST",
-          "param": {
-            "text" : "string"
-          },
-          "weight": 1
+          "path": "/users/1",
+          "method": "GET"
+        },
+        {
+          "path": "/users/2",
+          "method": "GET"
         }
       ]
     }

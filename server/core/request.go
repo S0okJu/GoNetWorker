@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -28,7 +29,8 @@ func (r *Requests) Send() {
 			continue
 		}
 
-		_, err = client.Do(httpReq)
+		res, err := client.Do(httpReq)
+		log.Println("Request sent to", req.Url, res.Status)
 		if err != nil {
 			fmt.Printf("Error sending request: %v\n", err)
 			time.Sleep(1 * time.Second)
