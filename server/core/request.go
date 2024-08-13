@@ -14,7 +14,7 @@ type Requests struct {
 	requests []Request
 }
 
-func (r *Requests) Send() {
+func (r *Requests) Send(sleepRange int) {
 	cnt := len(r.requests)
 	client := &http.Client{Timeout: 10 * time.Second}
 
@@ -38,7 +38,7 @@ func (r *Requests) Send() {
 		}
 
 		// Generate random sleep duration between 1 and 10 seconds
-		sleepDuration := time.Duration(rand.Intn(10)) * time.Second
+		sleepDuration := time.Duration(rand.Intn(sleepRange)) * time.Second
 		fmt.Printf("Sleeping for %v before next request\n", sleepDuration)
 		time.Sleep(sleepDuration)
 	}
@@ -100,7 +100,7 @@ func Send(path string) {
 	// Parse Json
 
 	p := newParser(path)
-	p.parseJson(p)
+	p.parseJson()
 
 	res := p.cfg
 	var reqs Requests
@@ -119,5 +119,5 @@ func Send(path string) {
 	}
 
 	// send
-	reqs.Send()
+	reqs.Send(p.cfg.Settings.SleepRange)
 }

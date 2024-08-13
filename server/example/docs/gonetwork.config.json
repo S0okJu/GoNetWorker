@@ -1,4 +1,7 @@
 {
+  "settings": {
+    "sleep_range" : 5
+  },
   "works": [
     {
       "uri": "http://localhost",

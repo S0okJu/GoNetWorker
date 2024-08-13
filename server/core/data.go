@@ -1,7 +1,12 @@
 package core
 
 type Config struct {
-	Works []Work `json:"works"`
+	Settings Settings `json:"settings"`
+	Works    []Work   `json:"works"`
+}
+
+type Settings struct {
+	SleepRange int `json:"sleep_range"`
 }
 
 type Work struct {

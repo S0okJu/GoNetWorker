@@ -15,9 +15,9 @@ func newParser(path string) Parser {
 	return Parser{path: path}
 }
 
-func (p *Parser) parseJson(Parser Parser) {
+func (p *Parser) parseJson() {
 	// Read file
-	file, err := os.ReadFile(Parser.path)
+	file, err := os.ReadFile(p.path)
 	if err != nil {
 		fmt.Printf("Error reading config file: %v\n", err)
 	}
