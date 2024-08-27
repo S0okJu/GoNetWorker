@@ -1,9 +1,21 @@
 {
-  "name": "John Doe",
-  "age": 30,
-  "address": {
-    "street": "123 Main St",
-    "city": "Anytown",
-    "zipcode": "12345"
-  }
+  "settings": {
+    "sleep_range" : 5
+  },
+  "works": [
+    {
+      "uri": "http://localhost",
+      "port": 8000,
+      "tasks": [
+        {
+          "path": "/users/1",
+          "method": "GET"
+        },
+        {
+          "path": "/users/2",
+          "method": "GET"
+        }
+      ]
+    }
+  ]
 }
