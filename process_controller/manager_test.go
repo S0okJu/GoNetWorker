@@ -41,12 +41,12 @@ func TestWorkerProcessingAndStopping(t *testing.T) {
 
 	// Check if the worker processed jobs multiple times
 	if !containsMultipleOccurrences(output, "Worker processing job", 2) {
-		t.Errorf("expected 'Worker processing job' message multiple times, but got:\n%s", output)
+		t.Errorf(output)
 	}
 
 	// Check if the worker stopped
 	if !containsOnce(output, "Worker stopping") {
-		t.Errorf("expected 'Worker stopping' message once, but got:\n %s", output)
+		t.Errorf(output)
 	}
 }
 

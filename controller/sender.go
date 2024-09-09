@@ -10,25 +10,23 @@ import (
 
 type Signal struct {
 	RequestId string `json:"request_id"`
-	Status    string `json:"status"`
 	Jobs      Jobs   `json:"jobs"`
 }
 
-func NewSignal(rid string, status string, jobs Jobs) *Signal {
+func NewSignal(rid string, jobs Jobs) *Signal {
 	return &Signal{
 		RequestId: rid,
-		Status:    status,
 		Jobs:      jobs,
 	}
 }
 
 type Sender struct {
-	jobs Jobs
+	Jobs Jobs
 }
 
 func NewSender(jobs Jobs) *Sender {
 	return &Sender{
-		jobs: jobs,
+		Jobs: jobs,
 	}
 }
 
@@ -38,14 +36,14 @@ func (s *Sender) Send() error {
 	rid := g.generate()
 
 	// Signal
-	signal := NewSignal(rid, "start", s.jobs)
+	signal := NewSignal(rid, s.Jobs)
 	jsonData, err := json.Marshal(signal)
 	if err != nil {
 		return err
 	}
 
 	// Send to websocket server
-	req, err := http.NewRequest("POST", "http://localhost:8080", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", "http://localhost:8080/start", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}

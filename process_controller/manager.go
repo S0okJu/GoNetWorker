@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/s0okjug/gonetworker/controller"
 	"time"
 )
 
@@ -56,39 +57,79 @@ func (s *state) IsStop() bool {
 type Process struct {
 	id     string
 	state  state
+	job    controller.Job
 	cancel context.CancelFunc
 }
 
 // NewProcess Create new Process Object.
-func NewProcess() *Process {
+func NewProcess(job controller.Job) *Process {
 	return &Process{
 		id:    uuid.NewString(),
+		job:   job,
 		state: NewState(Unknown),
 	}
 }
 
+// Convert is convert controller.Jobs to Process
+func Convert(jobs controller.Jobs) *[]Process {
+	processes := make([]Process, len(jobs))
+	for i, job := range jobs {
+		processes[i] = *NewProcess(job)
+	}
+	return &processes
+}
+
 func (p *Process) Start(result chan<- Process) {
-	fmt.Println("Process Start : %s", p.id)
+	fmt.Printf("Process Start : %s", p.id)
 	p.state.Convert(Running)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
-	go test(ctx)
+	// Start processing the job in a goroutine
+	go func() {
+		select {
+		case <-ctx.Done(): // If context is canceled, stop the process
+			fmt.Printf("Process %s canceled\n", p.id)
+			p.state = NewState("Stop")
+			result <- *p
+			return
+		default:
+			// Simulate job execution by sleeping for 2 seconds
+			fmt.Printf("Process %s working on job\n", p.id)
+			time.Sleep(2 * time.Second)
 
-	result <- *p
+			// Mark process as completed
+			fmt.Printf("Process %s completed job\n", p.id)
+			p.state = NewState("Stop")
+			result <- *p
+		}
+	}()
 }
 
 func (p *Process) Stop() {
 	if p.state.IsInRunning() {
 		p.cancel()
 		p.state.Convert(Stop)
-		fmt.Println("Process Stop : %s", p.id)
+		fmt.Printf("Process Stop : %s", p.id)
 	} else {
-		fmt.Println("Process Not Running : %s", p.id)
+		fmt.Printf("Process Not Running : %s", p.id)
 	}
 }
 
-// test is a function that each worker goroutine will run
+func request(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("Shut down now")
+			return
+		default:
+			// request http
+
+		}
+
+	}
+}
+
 func test(ctx context.Context) {
 	for {
 		select {

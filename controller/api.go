@@ -33,6 +33,5 @@ func GetConfigHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	return
-
+	w.WriteHeader(http.StatusOK)
 }
