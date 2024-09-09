@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"github.com/s0okjug/gonetworker/controller"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
-	_ "strconv"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -21,7 +23,7 @@ func makeRequest(work controller.Work, task controller.Task, client *http.Client
 	url := fmt.Sprintf("http://localhost:%d%s", work.Port, task.Path)
 
 	// Sleep for a random time within the range
-	sleepDuration := time.Duration(sleepRange) * time.Second
+	sleepDuration := time.Duration(rand.Intn(sleepRange)) * time.Second
 	time.Sleep(sleepDuration)
 
 	// Perform the request based on the HTTP method
@@ -31,11 +33,13 @@ func makeRequest(work controller.Work, task controller.Task, client *http.Client
 	switch strings.ToUpper(task.Method) {
 	case "GET":
 		req, err = http.NewRequest("GET", url, nil)
+		fmt.Println("GET request to", url)
 	case "POST":
-		fmt.Println("post")
-		//payload := []byte()
-		//req, err = http.NewRequest("POST", url, bytes.NewBuffer(payload))
-		//req.Header.Set("Content-Type", "application/json")
+		fmt.Println("POST request to", url)
+		// Uncomment and handle payload if necessary
+		// payload := []byte()
+		// req, err = http.NewRequest("POST", url, bytes.NewBuffer(payload))
+		// req.Header.Set("Content-Type", "application/json")
 	default:
 		fmt.Printf("Unsupported HTTP method: %s\n", task.Method)
 		return
@@ -64,8 +68,11 @@ func makeRequest(work controller.Work, task controller.Task, client *http.Client
 }
 
 func main() {
+	// Seed the random number generator
+	rand.Seed(time.Now().UnixNano())
+
 	// Open the JSON file
-	jsonFile, err := os.Open("data.json")
+	jsonFile, err := os.Open("./test.json")
 	if err != nil {
 		fmt.Printf("Error opening JSON file: %v\n", err)
 		return
@@ -90,17 +97,35 @@ func main() {
 	// Create a wait group for goroutines
 	var wg sync.WaitGroup
 
-	// Loop through works and tasks
-	for _, work := range config.Works {
-		for _, task := range work.Tasks {
-			wg.Add(1)
-			// Use a default HTTP client for the requests
-			client := &http.Client{}
-			go makeRequest(work, task, client, &wg, config.Settings.SleepRange)
-		}
-	}
+	// Create a channel to listen for interrupt signals (Ctrl+C)
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Wait for all goroutines to complete
-	wg.Wait()
-	fmt.Println("All requests completed.")
+	// Infinite loop to send random requests continuously
+	go func() {
+		for {
+			select {
+			case <-stopChan:
+				fmt.Println("Received interrupt signal. Shutting down...")
+				return
+			default:
+				// Randomly select a work and a task
+				work := config.Works[rand.Intn(len(config.Works))]
+				task := work.Tasks[rand.Intn(len(work.Tasks))]
+
+				// Start the request in a new goroutine
+				wg.Add(1)
+				client := &http.Client{}
+				go makeRequest(work, task, client, &wg, config.Settings.SleepRange)
+
+				// Sleep for a random duration before the next request
+				randomSleep := time.Duration(rand.Intn(config.Settings.SleepRange)) * time.Second
+				time.Sleep(randomSleep)
+			}
+		}
+	}()
+
+	// Block main goroutine until interrupt signal is received
+	<-stopChan
+	fmt.Println("Program terminated.")
 }

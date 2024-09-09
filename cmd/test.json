@@ -1,0 +1,21 @@
+{
+  "settings": {
+    "sleep_range" : 5
+  },
+  "works": [
+    {
+      "uri": "http://localhost",
+      "port": 8080,
+      "tasks": [
+        {
+          "path": "/users/1",
+          "method": "GET"
+        },
+        {
+          "path": "/users/2",
+          "method": "GET"
+        }
+      ]
+    }
+  ]
+}
