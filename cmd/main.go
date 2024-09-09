@@ -1,30 +1,27 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/s0okjug/gonetworker/controller"
 	"io"
-	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
+	_ "strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-// Function to make a request
-func makeRequest(work controller.Work, task controller.Task, wg *sync.WaitGroup, sleepRange int) {
+// Updated makeRequest function to accept http.Client as an argument
+func makeRequest(work controller.Work, task controller.Task, client *http.Client, wg *sync.WaitGroup, sleepRange int) {
 	defer wg.Done()
 
 	// Create the full URL
-	url := fmt.Sprintf(strconv.Itoa(work.Port), task.Path)
+	url := fmt.Sprintf("http://localhost:%d%s", work.Port, task.Path)
 
 	// Sleep for a random time within the range
-	sleepDuration := time.Duration(rand.Intn(sleepRange)) * time.Second
+	sleepDuration := time.Duration(sleepRange) * time.Second
 	time.Sleep(sleepDuration)
 
 	// Perform the request based on the HTTP method
@@ -35,10 +32,10 @@ func makeRequest(work controller.Work, task controller.Task, wg *sync.WaitGroup,
 	case "GET":
 		req, err = http.NewRequest("GET", url, nil)
 	case "POST":
-		// In case of POST, we assume some random JSON data as a payload
-		payload := []byte(task.Body)
-		req, err = http.NewRequest("POST", url, bytes.NewBuffer(payload))
-		req.Header.Set("Content-Type", "application/json")
+		fmt.Println("post")
+		//payload := []byte()
+		//req, err = http.NewRequest("POST", url, bytes.NewBuffer(payload))
+		//req.Header.Set("Content-Type", "application/json")
 	default:
 		fmt.Printf("Unsupported HTTP method: %s\n", task.Method)
 		return
@@ -49,7 +46,6 @@ func makeRequest(work controller.Work, task controller.Task, wg *sync.WaitGroup,
 		return
 	}
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error making request: %v\n", err)
@@ -57,32 +53,37 @@ func makeRequest(work controller.Work, task controller.Task, wg *sync.WaitGroup,
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Error reading response: %v\n", err)
 		return
 	}
 
-	// Print the response status and body
 	fmt.Printf("Response from %s: %s\n", url, resp.Status)
 	fmt.Printf("Response body: %s\n", string(body))
 }
+
 func main() {
 	// Open the JSON file
 	jsonFile, err := os.Open("data.json")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error opening JSON file: %v\n", err)
 		return
 	}
 	defer jsonFile.Close()
-	byteValue, _ := io.ReadAll(jsonFile)
 
 	// Read the file's content
+	byteValue, err := io.ReadAll(jsonFile)
+	if err != nil {
+		fmt.Printf("Error reading JSON file: %v\n", err)
+		return
+	}
+
 	// Parse the JSON input
 	var config controller.Config
 	err = json.Unmarshal(byteValue, &config)
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
+		fmt.Printf("Error parsing JSON: %v\n", err)
 		return
 	}
 
@@ -93,7 +94,9 @@ func main() {
 	for _, work := range config.Works {
 		for _, task := range work.Tasks {
 			wg.Add(1)
-			go makeRequest(work, task, &wg, config.Settings.SleepRange)
+			// Use a default HTTP client for the requests
+			client := &http.Client{}
+			go makeRequest(work, task, client, &wg, config.Settings.SleepRange)
 		}
 	}
 
