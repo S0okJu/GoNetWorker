@@ -38,7 +38,7 @@ GoNetWorker는 운영 환경을 학습하기 위한 가상의 사용자입니다
 flowchart LR
 	subgraph GoNetWorker
 	stop_ch(Stop Channel)
-	req([Request])--Wait Randomly-->req
+	req([Request])
 	end
 	
 	user((user))
