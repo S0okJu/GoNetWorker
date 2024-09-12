@@ -57,14 +57,7 @@ func makeRequest(work controller.Work, task controller.Task, client *http.Client
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
-		return
-	}
-
 	fmt.Printf("Response from %s: %s\n", url, resp.Status)
-	fmt.Printf("Response body: %s\n", string(body))
 }
 
 func main() {
