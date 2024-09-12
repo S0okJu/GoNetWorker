@@ -13,21 +13,22 @@ GoNetWorker는 운영 환경을 학습하기 위한 가상의 사용자입니다
   "settings": {  
     "sleep_range" : 5  
   },  
-  "works": [  
-    {  
-      "uri": "http://localhost",  
-      "port": 8080,  
-      "tasks": [  
-        {  
-          "path": "/users/1",  
-          "method": "GET"  
-        },  
-        {  
-          "path": "/users/2",  
-          "method": "GET"  
-        }  
-      ]  
-    } 
+  "works": [
+    {
+      "uri": "http://localhost",
+      "port": 8080,
+      "tasks": [
+        {
+          "path": "/users/1",
+          "method": "GET"
+        },
+        {
+          "path": "/users/2",
+          "method": "GET"
+        }
+      ]
+    }
+  ]
 }
 ```
 
