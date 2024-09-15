@@ -31,9 +31,6 @@ func getUserID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log the extracted user_id
-	log.Printf("Extracted user ID: %s", userID)
-
 	// Respond with the user_id
 	fmt.Fprintf(w, "User ID: %s", userID)
 }
