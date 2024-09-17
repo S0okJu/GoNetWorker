@@ -8,7 +8,7 @@ import (
 func main() {
 
 	// Open the JSON file
-	cfg, err := core.LoadJSON("../test.json")
+	cfg, err := core.LoadJSON("./test.json")
 	if err != nil {
 		fmt.Println("Error loading configuration:", err)
 		return
