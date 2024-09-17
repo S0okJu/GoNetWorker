@@ -1,4 +1,4 @@
-package controller
+package core
 
 import "fmt"
 
@@ -26,10 +26,11 @@ type Task struct {
 
 // Job is the task to be executed
 type Job struct {
-	RequestID string            `json:"request_id"`
-	Url       string            `json:"url"`
-	Method    string            `json:"method"`
-	Body      map[string]string `json:"body"`
+	// RequestID string            `json:"request_id"`
+	Url    string            `json:"url"`
+	Method string            `json:"method"`
+	Query  map[string]string `json:"query"`
+	Body   map[string]string `json:"body"`
 }
 
 type Jobs []Job

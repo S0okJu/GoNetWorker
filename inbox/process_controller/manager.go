@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/s0okjug/gonetworker/controller"
+	"github.com/s0okjug/gonetworker/core"
 	"time"
 )
 
@@ -57,12 +57,12 @@ func (s *state) IsStop() bool {
 type Process struct {
 	id     string
 	state  state
-	job    controller.Job
+	job    core.Job
 	cancel context.CancelFunc
 }
 
 // NewProcess Create new Process Object.
-func NewProcess(job controller.Job) *Process {
+func NewProcess(job core.Job) *Process {
 	return &Process{
 		id:    uuid.NewString(),
 		job:   job,
@@ -70,8 +70,8 @@ func NewProcess(job controller.Job) *Process {
 	}
 }
 
-// Convert is convert controller.Jobs to Process
-func Convert(jobs controller.Jobs) *[]Process {
+// Convert is convert core.Jobs to Process
+func Convert(jobs core.Jobs) *[]Process {
 	processes := make([]Process, len(jobs))
 	for i, job := range jobs {
 		processes[i] = *NewProcess(job)

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/s0okjug/gonetworker/controller"
+	"github.com/s0okjug/gonetworker/core"
 )
 
 // Mock function to simulate GET request test
@@ -24,9 +24,9 @@ func TestMakeRequest_GET(t *testing.T) {
 	defer mockServer.Close()
 
 	// Define a mock work and task
-	work := controller.Work{
+	work := core.Work{
 		Port: 8080, // Port is not relevant here since we're using mockServer.URL
-		Tasks: []controller.Task{
+		Tasks: []core.Task{
 			{Method: "GET", Path: mockServer.URL},
 		},
 	}

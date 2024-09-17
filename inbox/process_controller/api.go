@@ -2,7 +2,7 @@ package processcontroller
 
 import (
 	"encoding/json"
-	"github.com/s0okjug/gonetworker/controller"
+	"github.com/s0okjug/gonetworker/core"
 	"net/http"
 )
 
@@ -12,7 +12,7 @@ func StartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sender controller.Sender
+	var sender core.Sender
 	err := json.NewDecoder(r.Body).Decode(&sender)
 	if err != nil {
 		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
