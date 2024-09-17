@@ -9,7 +9,10 @@
       "tasks": [
         {
           "path": "/users/1",
-          "method": "GET"
+          "method": "GET",
+          "query" : {
+            "name" : "test"
+          }
         },
         {
           "path": "/users/2",

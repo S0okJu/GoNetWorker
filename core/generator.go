@@ -19,9 +19,9 @@ func request(job *Job, wg *sync.WaitGroup) error {
 	switch job.Method {
 	case "GET":
 		req, err = http.NewRequest("GET", job.Url, nil)
-		fmt.Println("GET request to", url)
+		fmt.Println("GET request to", job.Url)
 	case "POST":
-		fmt.Println("POST request to", url)
+		fmt.Println("POST request to", job.Url)
 	default:
 		fmt.Printf("Unsupported HTTP method: %s\n", job.Method)
 		return fmt.Errorf("Unsupported HTTP method: %s", job.Method)
