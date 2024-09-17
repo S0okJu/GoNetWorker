@@ -16,7 +16,10 @@
         },
         {
           "path": "/users/2",
-          "method": "GET"
+          "method": "POST",
+          "body" : {
+            "name" : "test"
+          }
         }
       ]
     }

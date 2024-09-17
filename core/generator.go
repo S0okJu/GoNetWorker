@@ -1,6 +1,8 @@
 package core
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -21,6 +23,17 @@ func request(job *Job, wg *sync.WaitGroup) error {
 		req, err = http.NewRequest("GET", job.Url, nil)
 		fmt.Println("GET request to", job.Url)
 	case "POST":
+		var jsonData []byte
+		jsonData, err = json.Marshal(job.Body)
+		if err != nil {
+			return err
+		}
+
+		req, err = http.NewRequest("POST", job.Url, bytes.NewBuffer(jsonData))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
 		fmt.Println("POST request to", job.Url)
 	default:
 		fmt.Printf("Unsupported HTTP method: %s\n", job.Method)

@@ -112,6 +112,6 @@ func getUrl(uri string, port int, task Task) (string, error) {
 		finalUrl := u.String()
 		return finalUrl, nil
 	} else {
-		return baseURI + task.Path, nil
+		return baseURI, nil
 	}
 }
