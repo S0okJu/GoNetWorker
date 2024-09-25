@@ -1,4 +1,4 @@
-package controller
+package core
 
 import "fmt"
 
@@ -6,6 +6,14 @@ import "fmt"
 type Config struct {
 	Settings Settings `json:"settings,omitempty"`
 	Works    []Work   `json:"works,omitempty"`
+}
+
+func (c *Config) GetSleepRange() int {
+	return c.Settings.SleepRange
+}
+
+func (c *Config) GetCcuMax() int {
+	return c.Settings.CcuMax
 }
 
 type Settings struct {

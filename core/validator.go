@@ -1,4 +1,4 @@
-package controller
+package core
 
 type Validator struct {
 	result bool
