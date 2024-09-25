@@ -1,19 +1,14 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 // -- Json Formats ---
 type Config struct {
 	Settings Settings `json:"settings,omitempty"`
 	Works    []Work   `json:"works,omitempty"`
-}
-
-func (c *Config) GetSleepRange() int {
-	return c.Settings.SleepRange
-}
-
-func (c *Config) GetCcuMax() int {
-	return c.Settings.CcuMax
 }
 
 type Settings struct {
@@ -30,15 +25,16 @@ type Work struct {
 type Task struct {
 	Path   string            `json:"path,omitempty"`
 	Method string            `json:"method,omitempty"`
+	Query  map[string]string `json:"query,omitempty"`
 	Body   map[string]string `json:"body"`
 }
 
 // Job is the task to be executed
 type Job struct {
-	RequestID string            `json:"request_id"`
-	Url       string            `json:"url"`
-	Method    string            `json:"method"`
-	Body      map[string]string `json:"body"`
+	// RequestID string            `json:"request_id"`
+	Url    string            `json:"url"`
+	Method string            `json:"method"`
+	Body   map[string]string `json:"body"`
 }
 
 type Jobs []Job
@@ -62,19 +58,22 @@ func (p *Parser) Parse() (Jobs, error) {
 		return nil, fmt.Errorf("no works found")
 	}
 
-	for _, task := range p.config.Works {
+	for _, work := range p.config.Works {
 		// Validate the Port
-		validator.Port(task.Port)
+		validator.Port(work.Port)
 		if validator.IsError() == true {
 			return nil, fmt.Errorf("Invalid port number")
 		}
 
-		for _, t := range task.Tasks {
-			fullUrl := url(task.Uri, task.Port, t.Path)
+		for _, task := range work.Tasks {
+			fullUrl, err := getUrl(work.Uri, work.Port, task)
+			if err != nil {
+				break
+			}
 			jobs = append(jobs, Job{
 				Url:    fullUrl,
-				Method: t.Method,
-				Body:   t.Body,
+				Method: task.Method,
+				Body:   task.Body,
 			})
 		}
 	}
@@ -86,10 +85,34 @@ func (p *Parser) Parse() (Jobs, error) {
 }
 
 // url returns the full URL for the task
-func url(uri string, port int, path string) string {
-	baseURI := uri
+func getUrl(uri string, port int, task Task) (string, error) {
+	var baseURI string
 	if port != 0 {
-		baseURI = fmt.Sprintf("%s:%d", baseURI, port)
+		baseURI = fmt.Sprintf("%s:%d", uri, port)
+	} else {
+		return "", fmt.Errorf("Invalid port number")
 	}
-	return baseURI + path
+
+	baseURI = baseURI + task.Path
+
+	// Get Query Parameters
+	if task.Method == "GET" {
+		params := url.Values{}
+		if len(task.Query) > 0 {
+			for key, value := range task.Query {
+				params.Add(key, value)
+			}
+		}
+
+		u, err := url.Parse(baseURI)
+		if err != nil {
+			return "", err
+		}
+
+		u.RawQuery = params.Encode()
+		finalUrl := u.String()
+		return finalUrl, nil
+	} else {
+		return baseURI, nil
+	}
 }
