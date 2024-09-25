@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -35,20 +34,18 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start the worker pool
-	var wg *sync.WaitGroup
-	err = ws.Start(ctx, config, wg)
-	if err != nil {
-		fmt.Printf("Error starting workers: %v\n", err)
-		return
-	}
-
-	// Wait for Ctrl+C or termination signal
 	go func() {
 		sig := <-signalChan
 		fmt.Printf("Received signal: %v. Shutting down...\n", sig)
 		cancel()
 	}()
+
+	// Start the worker pool
+	err = ws.Start(ctx, config)
+	if err != nil {
+		fmt.Printf("Error starting workers: %v\n", err)
+		return
+	}
 
 	fmt.Println("All tasks completed. Exiting...")
 
