@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/s0okjug/gonetworker/controller"
-	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -64,26 +62,10 @@ func main() {
 	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	// Open the JSON file
-	jsonFile, err := os.Open("./test.json")
+	reader := controller.NewReader("./test.json")
+	config, err := reader.GetConfig()
 	if err != nil {
-		fmt.Printf("Error opening JSON file: %v\n", err)
-		return
-	}
-	defer jsonFile.Close()
-
-	// Read the file's content
-	byteValue, err := io.ReadAll(jsonFile)
-	if err != nil {
-		fmt.Printf("Error reading JSON file: %v\n", err)
-		return
-	}
-
-	// Parse the JSON input
-	var config controller.Config
-	err = json.Unmarshal(byteValue, &config)
-	if err != nil {
-		fmt.Printf("Error parsing JSON: %v\n", err)
+		fmt.Printf("Error reading config: %v\n", err)
 		return
 	}
 

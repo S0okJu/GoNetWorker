@@ -1,6 +1,7 @@
 {
   "settings": {
-    "sleep_range" : 5
+    "sleep_range" : 5,
+    "ccu_max" : 5
   },
   "works": [
     {

@@ -10,6 +10,7 @@ type Config struct {
 
 type Settings struct {
 	SleepRange int `json:"sleep_range"`
+	CcuMax     int `json:"ccu_max"`
 }
 
 type Work struct {
