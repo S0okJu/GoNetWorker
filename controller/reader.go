@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+// Reader is the file reader struct
+// The file can read only JSON files
 type Reader struct {
 	filename string
 	result   []byte
@@ -17,6 +19,7 @@ func NewReader(filename string) *Reader {
 	}
 }
 
+// readJson reads the JSON file
 func (r *Reader) readJson() error {
 
 	// Open the JSON file
@@ -35,16 +38,17 @@ func (r *Reader) readJson() error {
 	return nil
 }
 
-func (r *Reader) GetConfig() (error, *Config) {
+// GetConfig reads the JSON file and returns the Config struct
+func (r *Reader) GetConfig() (*Config, error) {
 	err := r.readJson()
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	var config Config
 	err = json.Unmarshal(r.result, &config)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
-	return nil, &config
+	return &config, nil
 }

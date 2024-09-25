@@ -8,6 +8,14 @@ type Config struct {
 	Works    []Work   `json:"works,omitempty"`
 }
 
+func (c *Config) GetSleepRange() int {
+	return c.Settings.SleepRange
+}
+
+func (c *Config) GetCcuMax() int {
+	return c.Settings.CcuMax
+}
+
 type Settings struct {
 	SleepRange int `json:"sleep_range"`
 	CcuMax     int `json:"ccu_max"`
