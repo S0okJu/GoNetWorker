@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/s0okjug/gonetworker/core"
+	"github.com/s0okju/gonetworker/core"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -21,7 +21,6 @@ func main() {
 		fmt.Printf("Error reading config: %v\n", err)
 		return
 	}
-
 	ws, err := core.NewWorkers(config.GetCcuMax())
 	if err != nil {
 		fmt.Printf("Error creating workers: %v\n", err)
@@ -36,8 +35,8 @@ func main() {
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Start the worker pool
-	go ws.Start(ctx, config)
 
+	go ws.Start(ctx, config)
 	// Wait for Ctrl+C or termination signal
 	go func() {
 		sig := <-signalChan
@@ -46,7 +45,7 @@ func main() {
 	}()
 
 	// Wait for all workers to finish their tasks
-	ws.Done()
+	// ws.Done()
 
 	fmt.Println("All tasks completed. Exiting...")
 

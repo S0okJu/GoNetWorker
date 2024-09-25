@@ -12,11 +12,11 @@ import (
 
 // worker is a struct that contains a channel to signal when the worker's task is done.
 type worker struct {
-	channel chan bool
+	channel chan Job
 }
 
 func newWorker() worker {
-	return worker{channel: make(chan bool)}
+	return worker{channel: make(chan Job)}
 }
 
 // Workers is an array of workers.
@@ -31,33 +31,39 @@ func NewWorkers(cnt int) (*Workers, error) {
 	return &workers, nil
 }
 
-// Assign tasks to workers and handle cancellation context.
-func (ws *Workers) assign(ctx context.Context, task func()) {
-	var wg sync.WaitGroup
-
+// Assign tasks to workers by sending tasks through channels.
+func (ws *Workers) assign(ctx context.Context, cfg *Config, wg *sync.WaitGroup, client *http.Client) {
 	for _, w := range *ws {
 		wg.Add(1)
 		go func(wk worker) {
 			defer wg.Done()
 
-			select {
-			case <-ctx.Done(): // Handle context cancellation
-				fmt.Println("Task cancelled")
-				return
-			default:
-				task() // Execute the task function if no cancellation
-				wk.channel <- true
+			for {
+				select {
+				case job := <-wk.channel:
+					// Execute the task received via channel
+					err := makeRequest(ctx, job, client, cfg.GetSleepRange())
+					if err != nil {
+						fmt.Printf("Error in request: %v\n", err)
+					}
+
+					// Sleep before next task to avoid a tight loop
+					time.Sleep(1 * time.Second)
+
+				case <-ctx.Done():
+					// Stop the worker when context is canceled
+					fmt.Println("Worker stopped due to context cancellation")
+					return
+				}
 			}
 		}(w)
 	}
-
-	wg.Wait()
 }
 
 // Updated makeRequest function with context for cancellation
-func makeRequest(ctx context.Context, work Work, task Task, client *http.Client, sleepRange int) error {
+func makeRequest(ctx context.Context, job Job, client *http.Client, sleepRange int) error {
 	// Create the full URL
-	url := fmt.Sprintf("%s:%d%s", work.Uri, work.Port, task.Path)
+	url := job.Url
 
 	// Sleep for a random time within the range
 	sleepDuration := time.Duration(rand.Intn(sleepRange)) * time.Second
@@ -67,16 +73,17 @@ func makeRequest(ctx context.Context, work Work, task Task, client *http.Client,
 	var req *http.Request
 	var err error
 
-	switch strings.ToUpper(task.Method) {
+	switch strings.ToUpper(job.Method) {
 	case "GET":
 		req, err = http.NewRequestWithContext(ctx, "GET", url, nil)
 		fmt.Println("GET request to", url)
 	case "POST":
-		req, err = http.NewRequestWithContext(ctx, "POST", url, nil) // Add payload handling if needed
+		body, _ := job.ConvertTo()
+		req, err = http.NewRequestWithContext(ctx, "POST", url, body) // Add payload handling if needed
 		req.Header.Set("Content-Type", "application/json")
 		fmt.Println("POST request to", url)
 	default:
-		return fmt.Errorf("unsupported HTTP method: %s", task.Method)
+		return fmt.Errorf("unsupported HTTP method: %s", job.Method)
 	}
 
 	if err != nil {
@@ -95,30 +102,31 @@ func makeRequest(ctx context.Context, work Work, task Task, client *http.Client,
 
 // Start begins the worker tasks and listens for cancellation signals.
 func (ws *Workers) Start(ctx context.Context, cfg *Config) {
-
 	// Initialize HTTP client
 	client := &http.Client{}
-
-	// Run tasks in workers
 	go func() {
-		ws.assign(ctx, func() {
-			// Randomly select a work and a task
-			work := cfg.Works[rand.Intn(len(cfg.Works))]
-			task := work.Tasks[rand.Intn(len(work.Tasks))]
+		for {
+			select {
+			case <-ctx.Done():
+				fmt.Println("Stopping task assignment due to context cancellation.")
+				return
+			default:
+				// Randomly select a work and a task
+				work := cfg.Works[rand.Intn(len(cfg.Works))]
+				task := work.Tasks[rand.Intn(len(work.Tasks))]
 
-			// Perform the request
-			err := makeRequest(ctx, work, task, client, cfg.GetSleepRange())
-			if err != nil {
-				fmt.Printf("Error in request: %v\n", err)
+				// Randomly send the task to one of the workers' channels
+				worker := (*ws)[rand.Intn(len(*ws))]
+				worker.channel <-
 			}
-		})
+		}
 	}()
 }
 
 // Done waits for all workers to finish.
 func (ws *Workers) Done() {
 	for _, worker := range *ws {
-		<-worker.channel // Wait for each worker to complete
+		close(worker.channel)
 	}
 	fmt.Println("All workers are done.")
 }

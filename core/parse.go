@@ -1,7 +1,10 @@
 package core
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 )
 
@@ -9,6 +12,14 @@ import (
 type Config struct {
 	Settings Settings `json:"settings,omitempty"`
 	Works    []Work   `json:"works,omitempty"`
+}
+
+func (c *Config) GetSleepRange() int {
+	return c.Settings.SleepRange
+}
+
+func (c *Config) GetCcuMax() int {
+	return c.Settings.CcuMax
 }
 
 type Settings struct {
@@ -115,4 +126,15 @@ func getUrl(uri string, port int, task Task) (string, error) {
 	} else {
 		return baseURI, nil
 	}
+}
+
+func (j *Job) ConvertTo() (io.Reader, error) {
+	// Convert map to JSON
+	jsonData, err := json.Marshal(j.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling to JSON: %v", err)
+	}
+
+	// Create an io.Reader using bytes.NewBuffer
+	return bytes.NewBuffer(jsonData), nil
 }

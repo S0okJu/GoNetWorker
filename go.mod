@@ -1,4 +1,4 @@
-module github.com/s0okjug/gonetworker
+module github.com/s0okju/gonetworker
 
 go 1.22.1
 
