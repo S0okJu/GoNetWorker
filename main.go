@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/s0okjug/gonetworker/controller"
+	"github.com/s0okjug/gonetworker/core"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -15,14 +15,14 @@ func main() {
 	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	reader := controller.NewReader("./test.json")
+	reader := core.NewReader("./test.json")
 	config, err := reader.GetConfig()
 	if err != nil {
 		fmt.Printf("Error reading config: %v\n", err)
 		return
 	}
 
-	ws, err := controller.NewWorkers(config.GetCcuMax())
+	ws, err := core.NewWorkers(config.GetCcuMax())
 	if err != nil {
 		fmt.Printf("Error creating workers: %v\n", err)
 		return
