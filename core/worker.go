@@ -31,36 +31,7 @@ func NewWorkers(cnt int) (*Workers, error) {
 	return &workers, nil
 }
 
-// Assign tasks to workers by sending tasks through channels.
-func (ws *Workers) assign(ctx context.Context, cfg *Config, wg *sync.WaitGroup, client *http.Client) {
-	for _, w := range *ws {
-		wg.Add(1)
-		go func(wk worker) {
-			defer wg.Done()
-
-			for {
-				select {
-				case job := <-wk.channel:
-					// Execute the task received via channel
-					err := makeRequest(ctx, job, client, cfg.GetSleepRange())
-					if err != nil {
-						fmt.Printf("Error in request: %v\n", err)
-					}
-
-					// Sleep before next task to avoid a tight loop
-					time.Sleep(1 * time.Second)
-
-				case <-ctx.Done():
-					// Stop the worker when context is canceled
-					fmt.Println("Worker stopped due to context cancellation")
-					return
-				}
-			}
-		}(w)
-	}
-}
-
-// Updated makeRequest function with context for cancellation
+// makeRequest simulates an HTTP request
 func makeRequest(ctx context.Context, job Job, client *http.Client, sleepRange int) error {
 	// Create the full URL
 	url := job.Url
@@ -100,27 +71,61 @@ func makeRequest(ctx context.Context, job Job, client *http.Client, sleepRange i
 	return nil
 }
 
+// worker listens on a channel for tasks and processes them.
+func work(ctx context.Context, id int, jobs <-chan Job, wg *sync.WaitGroup, client *http.Client, sleepRange int) {
+	defer wg.Done()
+	wg.Add(1)
+
+	for {
+		select {
+		case j, ok := <-jobs:
+			if !ok {
+				// If the channel is closed, the worker stops.
+				fmt.Printf("Worker %d shutting down.\n", id)
+				return
+			}
+			// Execute the request
+			fmt.Printf("Worker %d processing task\n", id)
+			err := makeRequest(ctx, j, client, sleepRange)
+			if err != nil {
+				fmt.Printf("Worker %d encountered error: %v\n", id, err)
+			}
+
+		case <-ctx.Done():
+			// Context was canceled, exit the worker
+			fmt.Printf("Worker %d stopped due to context cancellation.\n", id)
+			return
+		}
+	}
+}
+
+func (ws *Workers) addJob(jobs Jobs) {
+	for {
+		j := jobs[rand.Intn(len(jobs))]
+		w := (*ws)[rand.Intn(len(*ws))]
+		w.channel <- j
+	}
+}
+
 // Start begins the worker tasks and listens for cancellation signals.
-func (ws *Workers) Start(ctx context.Context, cfg *Config) {
+func (ws *Workers) Start(ctx context.Context, cfg *Config, wg *sync.WaitGroup) error {
 	// Initialize HTTP client
 	client := &http.Client{}
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				fmt.Println("Stopping task assignment due to context cancellation.")
-				return
-			default:
-				// Randomly select a work and a task
-				work := cfg.Works[rand.Intn(len(cfg.Works))]
-				task := work.Tasks[rand.Intn(len(work.Tasks))]
 
-				// Randomly send the task to one of the workers' channels
-				worker := (*ws)[rand.Intn(len(*ws))]
-				worker.channel <-
-			}
-		}
-	}()
+	// Parse the jobs
+	parser := NewParser(*cfg)
+	jobs, err := parser.Parse()
+	if err != nil {
+		return err
+	}
+
+	go ws.addJob(jobs)
+
+	for i, w := range *ws {
+		go work(ctx, i, w.channel, wg, client, cfg.GetSleepRange())
+	}
+
+	return nil
 }
 
 // Done waits for all workers to finish.
