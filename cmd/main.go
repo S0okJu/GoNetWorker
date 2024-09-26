@@ -21,7 +21,7 @@ func main() {
 		fmt.Printf("Error reading config: %v\n", err)
 		return
 	}
-	ws, err := core.NewWorkers(config.GetCcuMax())
+	ws, err := core.NewWorker()
 	if err != nil {
 		fmt.Printf("Error creating workers: %v\n", err)
 		return

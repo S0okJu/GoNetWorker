@@ -10,16 +10,16 @@ import (
 	"time"
 )
 
-// Workers는 작업을 수행하는 구조체입니다.
-type Workers struct{}
+// Worker  작업을 수행하는 구조체입니다.
+type Worker struct{}
 
-// NewWorkers는 새로운 Workers 인스턴스를 생성합니다.
-func NewWorkers(cnt int) (*Workers, error) {
-	return &Workers{}, nil
+// NewWorker  새로운 Workers 인스턴스를 생성합니다.
+func NewWorker() (*Worker, error) {
+	return &Worker{}, nil
 }
 
-// Start는 작업을 시작하고 취소 신호를 감지합니다.
-func (ws *Workers) Start(ctx context.Context, cfg *Config) error {
+// Start  작업을 시작하고 취소 신호를 감지합니다.
+func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 
 	// 작업 파싱
 	parser := NewParser(*cfg)
@@ -53,21 +53,16 @@ func (ws *Workers) Start(ctx context.Context, cfg *Config) error {
 		select {
 		case <-ctx.Done():
 			fmt.Println("Context canceled during sleep. Waiting for workers to finish...")
-			// 루프가 컨텍스트 취소로 인해 종료되므로 추가 조치 불필요
 		case <-time.After(1 * time.Second):
-			// 1초 대기 후 다음 반복 실행
 		}
 	}
 
 	// 모든 고루틴이 완료될 때까지 대기
 	wg.Wait()
-	close(errChan) // 에러 채널 닫기
+	close(errChan)
 
 	// 에러 처리
 	if len(errChan) > 0 {
-		for err := range errChan {
-			fmt.Println("Error occurred:", err)
-		}
 		return fmt.Errorf("one or more errors occurred")
 	}
 
