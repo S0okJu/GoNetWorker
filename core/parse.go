@@ -40,7 +40,7 @@ type Task struct {
 	Body   map[string]string `json:"body"`
 }
 
-// Job is the task to be executed
+// Job request를 위한 구조체
 type Job struct {
 	// RequestID string            `json:"request_id"`
 	Url    string            `json:"url"`
@@ -48,8 +48,10 @@ type Job struct {
 	Body   map[string]string `json:"body"`
 }
 
+// Jobs Job 배열
 type Jobs []Job
 
+// Parser 파일로부터 읽은 데이터를 파싱
 type Parser struct {
 	config Config
 }
@@ -60,7 +62,7 @@ func NewParser(cfg Config) *Parser {
 	}
 }
 
-// Parse parses the configuration and returns a list of tasks
+// Parse 파일로부터 읽은 데이터를 Jobs 형태로 변환
 func (p *Parser) Parse() (Jobs, error) {
 	validator := NewValidator()
 
@@ -70,7 +72,6 @@ func (p *Parser) Parse() (Jobs, error) {
 	}
 
 	for _, work := range p.config.Works {
-		// Validate the Port
 		validator.Port(work.Port)
 		if validator.IsError() == true {
 			return nil, fmt.Errorf("Invalid port number")
@@ -95,7 +96,7 @@ func (p *Parser) Parse() (Jobs, error) {
 	return jobs, nil
 }
 
-// url returns the full URL for the task
+// getUrl URL 생성
 func getUrl(uri string, port int, task Task) (string, error) {
 	var baseURI string
 	if port != 0 {
@@ -128,13 +129,12 @@ func getUrl(uri string, port int, task Task) (string, error) {
 	}
 }
 
+// ConvertTo request POST Body 변환을 위한 함수
 func (j *Job) ConvertTo() (io.Reader, error) {
-	// Convert map to JSON
 	jsonData, err := json.Marshal(j.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling to JSON: %v", err)
 	}
 
-	// Create an io.Reader using bytes.NewBuffer
 	return bytes.NewBuffer(jsonData), nil
 }

@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-// Reader is the file reader struct
-// The file can read only JSON files
+// Reader
+// NOTICE: JSON 파일만 읽기 가능
 type Reader struct {
 	filename string
 	result   []byte
@@ -22,14 +22,12 @@ func NewReader(filename string) *Reader {
 // readJson reads the JSON file
 func (r *Reader) readJson() error {
 
-	// Open the JSON file
-	jsonFile, err := os.Open("./test.json")
+	jsonFile, err := os.Open("./test-server.json")
 	if err != nil {
 		return err
 	}
 	defer jsonFile.Close()
 
-	// Read the file's content
 	byteValue, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return err
@@ -38,7 +36,7 @@ func (r *Reader) readJson() error {
 	return nil
 }
 
-// GetConfig reads the JSON file and returns the Config struct
+// GetConfig 읽은 값을 Config 구조체로 반환
 func (r *Reader) GetConfig() (*Config, error) {
 	err := r.readJson()
 	if err != nil {

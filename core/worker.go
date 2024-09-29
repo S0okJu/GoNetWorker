@@ -21,7 +21,6 @@ func NewWorker() (*Worker, error) {
 // Start  작업을 시작하고 취소 신호를 감지합니다.
 func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 
-	// 작업 파싱
 	parser := NewParser(*cfg)
 	jobs, err := parser.Parse()
 	if err != nil {
@@ -29,27 +28,24 @@ func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 	}
 
 	var wg sync.WaitGroup
-	errChan := make(chan error, 1) // 에러를 수집할 채널
+	errChan := make(chan error, 1)
 
-	// 컨텍스트가 취소되지 않은 동안 루프 실행
+	// 컨텍스트가 취소되지 않은 동안 실행
 	for ctx.Err() == nil {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// 에러 변수를 고루틴 내부에서 선언하여 데이터 레이스 방지
 			err := request(ctx, jobs[rand.Intn(len(jobs))], cfg.Settings.SleepRange)
+			// 에러 발생 시 에러 시그널 채널에 전송
 			if err != nil {
-				// 에러 채널에 에러 전송 (버퍼 크기 주의)
 				select {
 				case errChan <- err:
 				default:
-					// 에러 채널이 가득 찬 경우 에러 로그 출력
 					fmt.Println("Error channel is full:", err)
 				}
 			}
 		}()
 
-		// 다음 작업 전 대기 시간 (컨텍스트 취소 감지)
 		select {
 		case <-ctx.Done():
 			fmt.Println("Context canceled during sleep. Waiting for workers to finish...")
@@ -57,11 +53,9 @@ func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 		}
 	}
 
-	// 모든 고루틴이 완료될 때까지 대기
 	wg.Wait()
 	close(errChan)
 
-	// 에러 처리
 	if len(errChan) > 0 {
 		return fmt.Errorf("one or more errors occurred")
 	}
@@ -69,21 +63,18 @@ func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-// request는 HTTP 요청을 수행합니다.
+// request HTTP 요청을 수행
 func request(ctx context.Context, job Job, sleepRange int) error {
 	// 전체 URL 생성
 	url := job.Url
 
-	// 랜덤 시간만큼 대기 (컨텍스트 취소 감지)
 	sleepDuration := time.Duration(rand.Intn(sleepRange)) * time.Second
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-time.After(sleepDuration):
-		// 지정된 시간만큼 대기
 	}
 
-	// HTTP 요청 생성
 	var req *http.Request
 	var err error
 	client := &http.Client{}
@@ -107,7 +98,6 @@ func request(ctx context.Context, job Job, sleepRange int) error {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		// 컨텍스트 취소로 인한 오류 처리
 		if ctx.Err() != nil {
 			fmt.Println("요청이 취소되었습니다:", ctx.Err())
 			return ctx.Err()

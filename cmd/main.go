@@ -12,10 +12,9 @@ import (
 )
 
 func main() {
-	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	reader := core.NewReader("./test.json")
+	reader := core.NewReader("./test-server.json")
 	config, err := reader.GetConfig()
 	if err != nil {
 		fmt.Printf("Error reading config: %v\n", err)
@@ -26,11 +25,10 @@ func main() {
 		fmt.Printf("Error creating workers: %v\n", err)
 		return
 	}
-	// Create a context that can be canceled
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Set up channel to listen for OS signals (e.g., Ctrl+C)
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -40,7 +38,6 @@ func main() {
 		cancel()
 	}()
 
-	// Start the worker pool
 	err = ws.Start(ctx, config)
 	if err != nil {
 		fmt.Printf("Error starting workers: %v\n", err)

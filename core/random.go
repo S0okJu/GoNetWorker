@@ -5,6 +5,9 @@ import (
 	"math/rand"
 )
 
+// TODO : Generater 구조체 생성
+
+// GenerateRandomData 랜덤 데이터 생성
 func generateRandomValue(dataType string) string {
 	switch dataType {
 	case "string":
@@ -20,6 +23,7 @@ func generateRandomValue(dataType string) string {
 	}
 }
 
+// randomString 랜덤 문자열 생성
 func randomString(length int) string {
 	if length == 0 {
 		length = 1
