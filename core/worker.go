@@ -10,73 +10,86 @@ import (
 	"time"
 )
 
-// worker is a struct that contains a channel to signal when the worker's task is done.
-type worker struct {
-	channel chan bool
+// Worker  작업을 수행하는 구조체입니다.
+type Worker struct{}
+
+// NewWorker  새로운 Workers 인스턴스를 생성합니다.
+func NewWorker() (*Worker, error) {
+	return &Worker{}, nil
 }
 
-func newWorker() worker {
-	return worker{channel: make(chan bool)}
-}
+// Start  작업을 시작하고 취소 신호를 감지합니다.
+func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 
-// Workers is an array of workers.
-type Workers []worker
-
-// NewWorkers creates a list of workers (CCU).
-func NewWorkers(cnt int) (*Workers, error) {
-	var workers Workers
-	for i := 0; i < cnt; i++ {
-		workers = append(workers, newWorker())
+	parser := NewParser(*cfg)
+	jobs, err := parser.Parse()
+	if err != nil {
+		return err
 	}
-	return &workers, nil
-}
 
-// Assign tasks to workers and handle cancellation context.
-func (ws *Workers) assign(ctx context.Context, task func()) {
 	var wg sync.WaitGroup
+	errChan := make(chan error, 1)
 
-	for _, w := range *ws {
+	// 컨텍스트가 취소되지 않은 동안 실행
+	for ctx.Err() == nil {
 		wg.Add(1)
-		go func(wk worker) {
+		go func() {
 			defer wg.Done()
-
-			select {
-			case <-ctx.Done(): // Handle context cancellation
-				fmt.Println("Task cancelled")
-				return
-			default:
-				task() // Execute the task function if no cancellation
-				wk.channel <- true
+			err := request(ctx, jobs[rand.Intn(len(jobs))], cfg.Settings.SleepRange)
+			// 에러 발생 시 에러 시그널 채널에 전송
+			if err != nil {
+				select {
+				case errChan <- err:
+				default:
+					fmt.Println("Error channel is full:", err)
+				}
 			}
-		}(w)
+		}()
+
+		select {
+		case <-ctx.Done():
+			fmt.Println("Context canceled during sleep. Waiting for workers to finish...")
+		case <-time.After(1 * time.Second):
+		}
 	}
 
 	wg.Wait()
+	close(errChan)
+
+	if len(errChan) > 0 {
+		return fmt.Errorf("one or more errors occurred")
+	}
+
+	return nil
 }
 
-// Updated makeRequest function with context for cancellation
-func makeRequest(ctx context.Context, work Work, task Task, client *http.Client, sleepRange int) error {
-	// Create the full URL
-	url := fmt.Sprintf("%s:%d%s", work.Uri, work.Port, task.Path)
+// request HTTP 요청을 수행
+func request(ctx context.Context, job Job, sleepRange int) error {
+	// 전체 URL 생성
+	url := job.Url
 
-	// Sleep for a random time within the range
 	sleepDuration := time.Duration(rand.Intn(sleepRange)) * time.Second
-	time.Sleep(sleepDuration)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(sleepDuration):
+	}
 
-	// Perform the request based on the HTTP method
 	var req *http.Request
 	var err error
+	client := &http.Client{}
 
-	switch strings.ToUpper(task.Method) {
+	switch strings.ToUpper(job.Method) {
 	case "GET":
 		req, err = http.NewRequestWithContext(ctx, "GET", url, nil)
 		fmt.Println("GET request to", url)
 	case "POST":
-		req, err = http.NewRequestWithContext(ctx, "POST", url, nil) // Add payload handling if needed
+		body, _ := job.ConvertTo()
+		req, err = http.NewRequestWithContext(ctx, "POST", url, body)
 		req.Header.Set("Content-Type", "application/json")
 		fmt.Println("POST request to", url)
 	default:
-		return fmt.Errorf("unsupported HTTP method: %s", task.Method)
+		return fmt.Errorf("unsupported HTTP method: %s", job.Method)
 	}
 
 	if err != nil {
@@ -85,40 +98,14 @@ func makeRequest(ctx context.Context, work Work, task Task, client *http.Client,
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %v", err)
+		if ctx.Err() != nil {
+			fmt.Println("요청이 취소되었습니다:", ctx.Err())
+			return ctx.Err()
+		}
+		fmt.Println("요청 중 오류:", err)
+		return fmt.Errorf("요청 중 오류: %v", err)
 	}
 	defer resp.Body.Close()
 
-	fmt.Printf("Response from %s: %s\n", url, resp.Status)
 	return nil
-}
-
-// Start begins the worker tasks and listens for cancellation signals.
-func (ws *Workers) Start(ctx context.Context, cfg *Config) {
-
-	// Initialize HTTP client
-	client := &http.Client{}
-
-	// Run tasks in workers
-	go func() {
-		ws.assign(ctx, func() {
-			// Randomly select a work and a task
-			work := cfg.Works[rand.Intn(len(cfg.Works))]
-			task := work.Tasks[rand.Intn(len(work.Tasks))]
-
-			// Perform the request
-			err := makeRequest(ctx, work, task, client, cfg.GetSleepRange())
-			if err != nil {
-				fmt.Printf("Error in request: %v\n", err)
-			}
-		})
-	}()
-}
-
-// Done waits for all workers to finish.
-func (ws *Workers) Done() {
-	for _, worker := range *ws {
-		<-worker.channel // Wait for each worker to complete
-	}
-	fmt.Println("All workers are done.")
 }
