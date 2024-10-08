@@ -63,10 +63,27 @@ func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
+func urlPatternSelect(url string) (string, error) {
+	fmt.Println("brace", HasBrace(url))
+	if HasBrace(url) {
+		res, err := FixedUrl(url)
+		if err != nil {
+			return "", err
+		}
+		return res, nil
+	}
+	// job이 dynamic url을 가지고 있으면
+	return url, nil
+}
+
 // request HTTP 요청을 수행
 func request(ctx context.Context, job Job, sleepRange int) error {
-	// 전체 URL 생성
-	url := job.Url
+	// url 패턴 선택
+	url, uerr := urlPatternSelect(job.Url)
+	fmt.Println("url:", url)
+	if uerr != nil {
+		return uerr
+	}
 
 	sleepDuration := time.Duration(rand.Intn(sleepRange)) * time.Second
 	select {
@@ -78,6 +95,8 @@ func request(ctx context.Context, job Job, sleepRange int) error {
 	var req *http.Request
 	var err error
 	client := &http.Client{}
+
+	// Get FixedUrl
 
 	switch strings.ToUpper(job.Method) {
 	case "GET":
