@@ -12,7 +12,7 @@ endpoint.json은 GoNetWorker가 요청할 endpoint에 대한 정보를 정의합
 ```json
 {
   "settings": {
-    "sleep_range" : 5 // Request 간격
+    "sleep_range" : 5 # Request 간격
   },
   "works": [
     {
@@ -20,7 +20,7 @@ endpoint.json은 GoNetWorker가 요청할 endpoint에 대한 정보를 정의합
       "port": 8080,
       "tasks": [
         {
-          "path": "/users/{[1-3]}", // 1~3까지의 숫자를 랜덤하게 선택(Regex)
+          "path": "/users/{[1-3]}", # 1~3까지의 숫자를 랜덤하게 선택(Regex)
           "method": "GET"
         }
       ]
