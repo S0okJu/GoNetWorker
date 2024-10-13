@@ -64,7 +64,6 @@ func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 }
 
 func urlPatternSelect(url string) (string, error) {
-	fmt.Println("brace", HasBrace(url))
 	if HasBrace(url) {
 		res, err := FixedUrl(url)
 		if err != nil {
@@ -80,7 +79,6 @@ func urlPatternSelect(url string) (string, error) {
 func request(ctx context.Context, job Job, sleepRange int) error {
 	// url 패턴 선택
 	url, uerr := urlPatternSelect(job.Url)
-	fmt.Println("url:", url)
 	if uerr != nil {
 		return uerr
 	}
