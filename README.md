@@ -34,7 +34,9 @@ make 명령어를 통해 빌드 후 실행합니다.
 make // Build 
 ./gonetworker // Execute
 ```
+
 `ctrl + c`를 통해 프로그램을 종료할 수 있습니다.
+
 ![image](./imgs/img.png)
 
 
