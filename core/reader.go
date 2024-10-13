@@ -22,7 +22,7 @@ func NewReader(filename string) *Reader {
 // readJson reads the JSON file
 func (r *Reader) readJson() error {
 
-	jsonFile, err := os.Open("./test-server.json")
+	jsonFile, err := os.Open("./endpoint.json")
 	if err != nil {
 		return err
 	}

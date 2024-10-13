@@ -9,15 +9,7 @@
       "port": 8080,
       "tasks": [
         {
-          "path": "/users/1",
-          "method": "GET"
-        },
-        {
-          "path": "/users/2",
-          "method": "GET"
-        },
-        {
-          "path": "/users/3",
+          "path": "/users/{[1-3]}",
           "method": "GET"
         }
       ]

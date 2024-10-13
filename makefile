@@ -1,5 +1,5 @@
 # Variables
-APP_NAME := main
+APP_NAME := gonetworker
 GO_FILES := $(shell find . -name '*.go' -not -path "./vendor/*")
 VERSION := $(shell git describe --tags --always --dirty)
 CMD_DIR := ./cmd
@@ -38,14 +38,11 @@ lint:
 	@echo "Linting Go code..."
 	@golangci-lint run ./...
 
-# Default target
 .PHONY: all
 all: fmt vet build
 
-# Build and add version information
 build-version:
 	@echo "Building application with version info..."
 	@go build -ldflags "-X main.Version=$(VERSION)" -o $(APP_NAME) $(CMD_DIR)
 
-# Targets to make your life easier
 .PHONY: build run test clean fmt vet install lint

@@ -5,7 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // -- Json Formats ---
@@ -46,6 +51,52 @@ type Job struct {
 	Url    string            `json:"url"`
 	Method string            `json:"method"`
 	Body   map[string]string `json:"body"`
+}
+
+// HasBrace
+// Dynamic url을 가지고 있는지 {}를 확인
+func HasBrace(urlStr string) bool {
+	// Decode the URL first
+	decodedUrl, err := url.QueryUnescape(urlStr)
+	if err != nil {
+		fmt.Println("Error decoding URL:", err)
+		return false
+	}
+
+	// Check if the decoded URL contains { and }
+	return strings.Contains(decodedUrl, "{") && strings.Contains(decodedUrl, "}")
+}
+
+// FixedUrl
+// Dynamic url 범위를 하나로 고정한다.
+func FixedUrl(urlStr string) (string, error) {
+	// 정규식으로 파싱
+	decodedUrl, err := url.QueryUnescape(urlStr)
+	if err != nil {
+		return "", err
+	}
+	re := regexp.MustCompile(`\{\[(\d+)-(\d+)\]\}`)
+	matches := re.FindStringSubmatch(decodedUrl)
+	if len(matches) != 3 {
+		return "", fmt.Errorf("Invalid Regex Format")
+	}
+
+	// 숫자로 반환
+	minR, err1 := strconv.Atoi(matches[1])
+	maxR, err2 := strconv.Atoi(matches[2])
+	if err1 != nil || err2 != nil {
+		return "", fmt.Errorf("Error converting to integer")
+	}
+
+	// 랜덤 시드 생성
+	rand.Seed(time.Now().UnixNano())
+	idx := rand.Intn(maxR-minR+1) + minR
+
+	// 새로운 url
+	res := re.ReplaceAllString(decodedUrl, fmt.Sprintf("%d", idx))
+
+	return res, nil
+
 }
 
 // Jobs Job 배열
