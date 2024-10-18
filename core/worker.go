@@ -35,7 +35,7 @@ func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := request(ctx, jobs[rand.Intn(len(jobs))], cfg.Settings.SleepRange)
+			err = request(ctx, jobs[rand.Intn(len(jobs))], cfg.Settings.SleepRange)
 			// 에러 발생 시 에러 시그널 채널에 전송
 			if err != nil {
 				select {
@@ -63,22 +63,11 @@ func (ws *Worker) Start(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-func urlPatternSelect(url string) (string, error) {
-	if HasBrace(url) {
-		res, err := FixedUrl(url)
-		if err != nil {
-			return "", err
-		}
-		return res, nil
-	}
-	// job이 dynamic url을 가지고 있으면
-	return url, nil
-}
-
 // request HTTP 요청을 수행
 func request(ctx context.Context, job Job, sleepRange int) error {
 	// url 패턴 선택
-	url, uerr := urlPatternSelect(job.Url)
+	dus := NewDynamicUrlSelector(job.Url)
+	url, uerr := dus.Select()
 	if uerr != nil {
 		return uerr
 	}
@@ -93,8 +82,6 @@ func request(ctx context.Context, job Job, sleepRange int) error {
 	var req *http.Request
 	var err error
 	client := &http.Client{}
-
-	// Get FixedUrl
 
 	switch strings.ToUpper(job.Method) {
 	case "GET":
