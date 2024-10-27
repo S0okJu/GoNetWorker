@@ -44,13 +44,11 @@ make // Build
 
 #### v.1.0.4
 - Body에 대한 설정 추가
-  - key : key의 변수 타입으로 지정 
-  - int인 경우 Regex를 활용하여 범위 지정 가능 
-
+	- key : key의 변수 타입으로 지정
+	- int인 경우 Regex를 활용하여 범위 지정 가능
 - 사용 가능한 변수 타입
-    - string
-    - int 
-
+	- string : 길이가 5인 랜덤한 문자열
+	- int : Default 1-10
 ```json 
 "body": {
   "name": "string",
