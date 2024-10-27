@@ -8,12 +8,11 @@ import (
 	"math/rand"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
-	"time"
 )
 
-// -- Json Formats ---
+// Config 설정 파일 구조체
+// endpoint.json 파일을 읽어들이기 위한 구조체
 type Config struct {
 	Settings Settings `json:"settings,omitempty"`
 	Works    []Work   `json:"works,omitempty"`
@@ -53,52 +52,6 @@ type Job struct {
 	Body   map[string]string `json:"body"`
 }
 
-// HasBrace
-// Dynamic url을 가지고 있는지 {}를 확인
-func HasBrace(urlStr string) bool {
-	// Decode the URL first
-	decodedUrl, err := url.QueryUnescape(urlStr)
-	if err != nil {
-		fmt.Println("Error decoding URL:", err)
-		return false
-	}
-
-	// Check if the decoded URL contains { and }
-	return strings.Contains(decodedUrl, "{") && strings.Contains(decodedUrl, "}")
-}
-
-// FixedUrl
-// Dynamic url 범위를 하나로 고정한다.
-func FixedUrl(urlStr string) (string, error) {
-	// 정규식으로 파싱
-	decodedUrl, err := url.QueryUnescape(urlStr)
-	if err != nil {
-		return "", err
-	}
-	re := regexp.MustCompile(`\{\[(\d+)-(\d+)\]\}`)
-	matches := re.FindStringSubmatch(decodedUrl)
-	if len(matches) != 3 {
-		return "", fmt.Errorf("Invalid Regex Format")
-	}
-
-	// 숫자로 반환
-	minR, err1 := strconv.Atoi(matches[1])
-	maxR, err2 := strconv.Atoi(matches[2])
-	if err1 != nil || err2 != nil {
-		return "", fmt.Errorf("Error converting to integer")
-	}
-
-	// 랜덤 시드 생성
-	rand.Seed(time.Now().UnixNano())
-	idx := rand.Intn(maxR-minR+1) + minR
-
-	// 새로운 url
-	res := re.ReplaceAllString(decodedUrl, fmt.Sprintf("%d", idx))
-
-	return res, nil
-
-}
-
 // Jobs Job 배열
 type Jobs []Job
 
@@ -129,7 +82,8 @@ func (p *Parser) Parse() (Jobs, error) {
 		}
 
 		for _, task := range work.Tasks {
-			fullUrl, err := getUrl(work.Uri, work.Port, task)
+			us := NewUrlSelector(work.Uri, work.Port, task)
+			fullUrl, err := us.Select()
 			if err != nil {
 				break
 			}
@@ -147,45 +101,55 @@ func (p *Parser) Parse() (Jobs, error) {
 	return jobs, nil
 }
 
-// getUrl URL 생성
-func getUrl(uri string, port int, task Task) (string, error) {
-	var baseURI string
-	if port != 0 {
-		baseURI = fmt.Sprintf("%s:%d", uri, port)
-	} else {
-		return "", fmt.Errorf("Invalid port number")
-	}
-
-	baseURI = baseURI + task.Path
-
-	// Get Query Parameters
-	if task.Method == "GET" {
-		params := url.Values{}
-		if len(task.Query) > 0 {
-			for key, value := range task.Query {
-				params.Add(key, value)
-			}
-		}
-
-		u, err := url.Parse(baseURI)
-		if err != nil {
-			return "", err
-		}
-
-		u.RawQuery = params.Encode()
-		finalUrl := u.String()
-		return finalUrl, nil
-	} else {
-		return baseURI, nil
-	}
-}
-
 // ConvertTo request POST Body 변환을 위한 함수
+// value는 타입을 나타내며, 타입에 맞게 랜덤 값으로 변환
 func (j *Job) ConvertTo() (io.Reader, error) {
-	jsonData, err := json.Marshal(j.Body)
+	newBody := make(map[string]interface{})
+	// Change to random value
+	re := regexp.MustCompile(`\{\[(\d+)-(\d+)\]\}`)
+	for key, value := range j.Body {
+		switch {
+		case value == "string":
+			selector := NewRandomSelector(5)
+			randStr, serr := selector.Select()
+			if serr != nil {
+				return nil, fmt.Errorf("error selecting random value: %v", serr)
+			}
+
+			newBody[key] = randStr
+		case value == "int":
+			randomInt := rand.Intn(10)
+			newBody[key] = randomInt
+		case re.MatchString(value):
+			minR, maxR, err := ConvertMinMax(value)
+			if err != nil {
+				return nil, fmt.Errorf("error converting min-max: %v", err)
+			}
+			randInt := rand.Intn(maxR-minR) + minR
+			newBody[key] = randInt
+		default:
+			return nil, fmt.Errorf("unsupported type: %s", value)
+		}
+	}
+	// Marshal
+	jsonData, err := json.Marshal(newBody)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling to JSON: %v", err)
 	}
 
 	return bytes.NewBuffer(jsonData), nil
+}
+
+// HasBrace
+// Dynamic url을 가지고 있는지 {}를 확인
+func HasBrace(urlStr string) bool {
+	// Decode the URL first
+	decodedUrl, err := url.QueryUnescape(urlStr)
+	if err != nil {
+		fmt.Println("Error decoding URL:", err)
+		return false
+	}
+
+	// Check if the decoded URL contains { and }
+	return strings.Contains(decodedUrl, "{") && strings.Contains(decodedUrl, "}")
 }

@@ -42,10 +42,27 @@ make // Build
 
 ### Update 
 
+#### v.1.0.4
+- Body에 대한 설정 추가
+  - key : key의 변수 타입으로 지정 
+  - int인 경우 Regex를 활용하여 범위 지정 가능 
+
+- 사용 가능한 변수 타입
+    - string
+    - int 
+
+```json 
+"body": {
+  "name": "string",
+  "age1": "int",
+  "age2": "{[1-100]}"
+}
+```
+
 #### v.1.0.3
 - Regex를 활용한 Request Path 지정
 
-```
+```json
 "path": "/users/{[1-3]}" 
 ```
 
