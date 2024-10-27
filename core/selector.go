@@ -83,6 +83,22 @@ func (dus *DynamicUrlSelector) Select() (string, error) {
 	return dus.url, nil
 }
 
+func ConvertMinMax(str string) (int, int, error) {
+	re := regexp.MustCompile(`\{\[(\d+)-(\d+)\]\}`)
+	matches := re.FindStringSubmatch(str)
+	if len(matches) != 3 {
+		return 0, 0, fmt.Errorf("Invalid Regex Format")
+	}
+
+	minR, err1 := strconv.Atoi(matches[1])
+	maxR, err2 := strconv.Atoi(matches[2])
+	if err1 != nil || err2 != nil {
+		return 0, 0, fmt.Errorf("Error converting to integer")
+	}
+
+	return minR, maxR, nil
+}
+
 // FixedUrl
 // Dynamic url 범위를 하나로 고정한다.
 func fixedUrl(urlStr string) (string, error) {
@@ -91,24 +107,14 @@ func fixedUrl(urlStr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	re := regexp.MustCompile(`\{\[(\d+)-(\d+)\]\}`)
-	matches := re.FindStringSubmatch(decodedUrl)
-	if len(matches) != 3 {
-		return "", fmt.Errorf("Invalid Regex Format")
-	}
-
-	// 숫자로 반환
-	minR, err1 := strconv.Atoi(matches[1])
-	maxR, err2 := strconv.Atoi(matches[2])
-	if err1 != nil || err2 != nil {
-		return "", fmt.Errorf("Error converting to integer")
-	}
+	minR, maxR, err := ConvertMinMax(decodedUrl)
 
 	// 랜덤 시드 생성
 	rand.Seed(time.Now().UnixNano())
 	idx := rand.Intn(maxR-minR+1) + minR
 
 	// 새로운 url
+	re := regexp.MustCompile(`\{\[(\d+)-(\d+)\]\}`)
 	res := re.ReplaceAllString(decodedUrl, fmt.Sprintf("%d", idx))
 
 	return res, nil

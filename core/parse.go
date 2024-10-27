@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -100,8 +102,37 @@ func (p *Parser) Parse() (Jobs, error) {
 }
 
 // ConvertTo request POST Body 변환을 위한 함수
+// value는 타입을 나타내며, 타입에 맞게 랜덤 값으로 변환
 func (j *Job) ConvertTo() (io.Reader, error) {
-	jsonData, err := json.Marshal(j.Body)
+	newBody := make(map[string]interface{})
+	// Change to random value
+	re := regexp.MustCompile(`\{\[(\d+)-(\d+)\]\}`)
+	for key, value := range j.Body {
+		switch {
+		case value == "string":
+			selector := NewRandomSelector(5)
+			randStr, serr := selector.Select()
+			if serr != nil {
+				return nil, fmt.Errorf("error selecting random value: %v", serr)
+			}
+
+			newBody[key] = randStr
+		case value == "int":
+			randomInt := rand.Intn(10)
+			newBody[key] = randomInt
+		case re.MatchString(value):
+			minR, maxR, err := ConvertMinMax(value)
+			if err != nil {
+				return nil, fmt.Errorf("error converting min-max: %v", err)
+			}
+			randInt := rand.Intn(maxR-minR) + minR
+			newBody[key] = randInt
+		default:
+			return nil, fmt.Errorf("unsupported type: %s", value)
+		}
+	}
+	// Marshal
+	jsonData, err := json.Marshal(newBody)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling to JSON: %v", err)
 	}
